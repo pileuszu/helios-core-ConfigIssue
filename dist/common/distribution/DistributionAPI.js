@@ -98,15 +98,14 @@ class DistributionAPI {
         try {
             const res = await got_1.default.get(this.remoteUrl, { responseType: 'json' });
             let data = res.body;
-
-            const isFirstLaunch = localStorage.getItem('isFirstLaunch') !== 'false';  // localStorage에서 초기 실행 여부 읽기
+            const isFirstLaunch = localStorage.getItem('isFirstLaunch') !== 'false';  
             
             if (!isFirstLaunch) {
                 // 첫 번째 호출 이후에는 "type": "File"이 포함된 모듈 제외
                 data = this.filterOutFileTypeModules(data);
             }
-
             this.isFirstFetch = false;  // 첫 번째 호출 이후 플래그 업데이트
+            localStorage.setItem('isFirstLaunch', 'false');  // 로컬 스토리지 업데이트
 
             return {
                 data,
@@ -116,14 +115,23 @@ class DistributionAPI {
         catch (error) {
             return (0, RestResponse_1.handleGotError)('Pull Remote', error, DistributionAPI.log, () => null);
         }
+        
     }
+
     filterOutFileTypeModules(data) {
-        // "type": "File"이 포함된 모듈을 제외하는 로직 구현
-        if (Array.isArray(data.modules)) {
-            data.modules = data.modules.filter(module => module.type !== 'File');
+        if (Array.isArray(data.servers)) {
+            data.servers.forEach(server => {
+                if (Array.isArray(server.modules)) {
+
+                    server.modules = server.modules.filter(module => module.type !== 'File');
+                }
+            });
         }
         return data;
     }
+    
+    
+
     async writeDistributionToDisk(distribution) {
         await (0, fs_extra_1.writeJson)(this.distroPath, distribution);
     }
